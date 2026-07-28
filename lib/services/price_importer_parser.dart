@@ -8,6 +8,8 @@ class DealerPriceRow {
   final double indentPrice;
   final double fixedSellingPrice;
   final DateTime effectiveDate;
+  final String sheet;
+  final int rowNumber;
 
   const DealerPriceRow({
     required this.dealerCode,
@@ -15,6 +17,8 @@ class DealerPriceRow {
     required this.indentPrice,
     required this.fixedSellingPrice,
     required this.effectiveDate,
+    required this.rowNumber,
+    required this.sheet,
   });
 }
 
@@ -195,6 +199,8 @@ class PriceImportParser {
 
       rows.add(
         DealerPriceRow(
+          sheet: sheet.sheetName,
+          rowNumber: rowIndex + 1,
           dealerCode: dealerCode,
           product: product,
           indentPrice: _roundPrice(indentPrice),
