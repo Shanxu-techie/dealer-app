@@ -1,8 +1,9 @@
-import 'package:dealer_app/services/price_letter_pdf_service.dart';
-import 'package:dealer_app/services/price_letter_service.dart';
+import 'package:dealer_app/login/login_page.dart';
+import 'package:dealer_app/login/secure_local_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'login/login_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ Future<void> main() async {
   await Supabase.initialize(
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
+    authOptions: FlutterAuthClientOptions(localStorage: SecureLocalStorage()),
   );
 
   runApp(const MyApp());
@@ -32,30 +34,91 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Supabase.instance.client.auth;
+
     return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            child: const Text('Generate Test PDF'),
-            onPressed: () async {
-              final data = PriceLetterData(
-                dealerCode: 4821,
-                effectiveDate: DateTime(2026, 7, 28),
-                ms: const ProductPriceData(
-                  indentPrice: 250.00,
-                  sellingPrice: 252.50,
-                ),
-                hsd: const ProductPriceData(
-                  indentPrice: 255.00,
-                  sellingPrice: 258.00,
-                ),
-              );
+      home: StreamBuilder<AuthState>(
+        stream: auth.onAuthStateChange,
+        initialData: AuthState(
+          AuthChangeEvent.initialSession,
+          auth.currentSession,
+        ),
+        builder: (context, snapshot) {
+          final session = snapshot.data?.session;
 
-              final pdfBytes = await generatePriceLetterPdf(data);
+          if (session != null) {
+            return const DealerHomePage();
+          }
 
-              await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
-            },
-          ),
+          return const LoginPage();
+        },
+      ),
+    );
+  }
+}
+
+class DealerHomePage extends StatefulWidget {
+  const DealerHomePage({super.key});
+
+  @override
+  State<DealerHomePage> createState() => _DealerHomePageState();
+}
+
+class _DealerHomePageState extends State<DealerHomePage> {
+  Map<String, dynamic>? profile;
+  String? error;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profileData = await LoginService().getCurrentUserProfile();
+
+      if (!mounted) return;
+
+      setState(() {
+        profile = profileData;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        error = e.toString();
+        loading = false;
+      });
+    }
+  }
+
+  Future<void> _signOut() async {
+    await Supabase.instance.client.auth.signOut();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (error != null) {
+      return Scaffold(body: Center(child: Text(error!)));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dealer Home')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Role: ${profile?['role']}'),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: _signOut, child: const Text('Sign Out')),
+          ],
         ),
       ),
     );
