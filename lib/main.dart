@@ -133,16 +133,16 @@ class _DealerHomePageState extends State<DealerHomePage> {
       await Supabase.instance.client
           .from('dealer_prices')
           .insert({
-        'dealer_code': 171317,
-        'effective_date': '2026-07-27',
-        'product_name': 'MS',
+        'dealer_code': 987654321,
+        'effective_date': '2099-01-01',
+        'product_name': 'RLS_TEST_ONLY',
         'indent_price': 250,
         'fixed_selling_price': 252,
       });
 
       debugPrint('WRITE SUCCEEDED - RLS FAILED');
     } catch (e) {
-      debugPrint('WRITE BLOCKED AS EXPECTED');
+      debugPrint('WRITE BLOCKED');
       debugPrint(e.toString());
     }
   }
