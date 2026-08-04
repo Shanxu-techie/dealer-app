@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:dealer_app/services/pdf_fonts.dart';
+import 'package:dealer_app/price_letter/pdf_fonts.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
