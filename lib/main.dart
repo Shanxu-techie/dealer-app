@@ -73,6 +73,42 @@ class _DealerHomePageState extends State<DealerHomePage> {
   String? error;
   bool loading = true;
 
+  Future<void> _testPublisherRead() async {
+    try {
+      // Positive case
+      const validDealerCode = 171317;
+
+      final validRows = await Supabase.instance.client
+          .from('dealer_prices')
+          .select()
+          .eq('dealer_code', validDealerCode);
+
+      debugPrint('=== Publisher Read Test (Valid Dealer) ===');
+      debugPrint('Dealer Code: $validDealerCode');
+      debugPrint('Returned ${validRows.length} rows');
+
+      for (final row in validRows) {
+        debugPrint(row.toString());
+      }
+
+      // Negative case
+      const invalidDealerCode = 999999999;
+
+      final invalidRows = await Supabase.instance.client
+          .from('dealer_prices')
+          .select()
+          .eq('dealer_code', invalidDealerCode);
+
+      debugPrint('=== Publisher Read Test (Missing Dealer) ===');
+      debugPrint('Dealer Code: $invalidDealerCode');
+      debugPrint('Returned ${invalidRows.length} rows');
+    } catch (e, st) {
+      debugPrint('PUBLISHER READ FAILED');
+      debugPrint(e.toString());
+      debugPrint(st.toString());
+    }
+  }
+
   Future<void> _testDealerRead() async {
     try {
       final rows = await Supabase.instance.client
@@ -207,6 +243,12 @@ class _DealerHomePageState extends State<DealerHomePage> {
               const SizedBox(height: 16),
             ],
             if (kDebugMode && profile?['role'] == 'publisher') ...[
+              ElevatedButton(
+                onPressed: _testPublisherRead,
+                child: const Text('Test Publisher Read'),
+              ),
+              const SizedBox(height: 16),
+
               ElevatedButton(
                 onPressed: _testImport,
                 child: const Text('Test Import'),
