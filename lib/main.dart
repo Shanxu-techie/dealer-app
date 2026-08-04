@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'dealer_search/dealer_search_page.dart';
+import 'dealer_search/dealer_search_service.dart';
 import 'login/login_service.dart';
 
 Future<void> main() async {
@@ -166,9 +168,7 @@ class _DealerHomePageState extends State<DealerHomePage> {
 
   Future<void> _testDealerWrite() async {
     try {
-      await Supabase.instance.client
-          .from('dealer_prices')
-          .insert({
+      await Supabase.instance.client.from('dealer_prices').insert({
         'dealer_code': 987654321,
         'effective_date': '2099-01-01',
         'product_name': 'RLS_TEST_ONLY',
@@ -252,6 +252,20 @@ class _DealerHomePageState extends State<DealerHomePage> {
               ElevatedButton(
                 onPressed: _testImport,
                 child: const Text('Test Import'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DealerSearchPage(
+                        service: DealerSearchService(Supabase.instance.client),
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Dealer Search'),
               ),
               const SizedBox(height: 16),
             ],
