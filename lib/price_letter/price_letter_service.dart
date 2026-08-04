@@ -1,12 +1,41 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class PriceLetterUnavailableException implements Exception {
-  const PriceLetterUnavailableException(this.message);
+import '../shared/models/result.dart';
+
+abstract class PriceLetterException implements Exception {
+  const PriceLetterException(this.message);
 
   final String message;
 
   @override
   String toString() => message;
+}
+
+class PriceLetterUnavailableException extends PriceLetterException {
+  const PriceLetterUnavailableException(super.message);
+}
+
+class InvalidPriceLetterDataException extends PriceLetterException {
+  const InvalidPriceLetterDataException(super.message);
+}
+
+FailureResult<PriceLetterData> _toFailureResult(
+  Object error,
+  StackTrace stackTrace,
+) {
+  if (error is PriceLetterException) {
+    return FailureResult(
+      message: error.message,
+      exception: error,
+      stackTrace: stackTrace,
+    );
+  }
+
+  return FailureResult(
+    message: 'Failed to load price letter.',
+    exception: error,
+    stackTrace: stackTrace,
+  );
 }
 
 class ProductPriceData {
@@ -57,7 +86,9 @@ PriceLetterData _mapPriceLetterRows({
         hsd = price;
         break;
       default:
-        throw StateError('Unexpected product_name: $product');
+        throw InvalidPriceLetterDataException(
+          'Unexpected product_name: $product',
+        );
     }
   }
 
@@ -75,53 +106,65 @@ PriceLetterData _mapPriceLetterRows({
   );
 }
 
-Future<PriceLetterData> fetchPriceLetterData({
+Future<Result<PriceLetterData>> fetchPriceLetterData({
   required SupabaseClient supabase,
   required int dealerCode,
   required DateTime effectiveDate,
 }) async {
-  final dateStr = effectiveDate.toIso8601String().split('T').first;
+  try {
+    final dateStr = effectiveDate.toIso8601String().split('T').first;
 
-  final rows = await supabase
-      .from('dealer_prices')
-      .select()
-      .eq('dealer_code', dealerCode)
-      .eq('effective_date', dateStr);
+    final rows = await supabase
+        .from('dealer_prices')
+        .select()
+        .eq('dealer_code', dealerCode)
+        .eq('effective_date', dateStr);
 
-  return _mapPriceLetterRows(
-    rows: rows,
-    dealerCode: dealerCode,
-    effectiveDate: effectiveDate,
-  );
+    return SuccessResult(
+      _mapPriceLetterRows(
+        rows: rows,
+        dealerCode: dealerCode,
+        effectiveDate: effectiveDate,
+      ),
+    );
+  } catch (e, stackTrace) {
+    return _toFailureResult(e, stackTrace);
+  }
 }
 
-Future<PriceLetterData> fetchCurrentPriceLetterData({
+Future<Result<PriceLetterData>> fetchCurrentPriceLetterData({
   required SupabaseClient supabase,
   required int dealerCode,
 }) async {
-  final rows = await supabase
-      .from('dealer_prices')
-      .select()
-      .eq('dealer_code', dealerCode)
-      .order('effective_date', ascending: false);
+  try {
+    final rows = await supabase
+        .from('dealer_prices')
+        .select()
+        .eq('dealer_code', dealerCode)
+        .order('effective_date', ascending: false);
 
-  if (rows.isEmpty) {
-    throw PriceLetterUnavailableException(
-      'No price data found for dealer $dealerCode',
+    if (rows.isEmpty) {
+      throw PriceLetterUnavailableException(
+        'No price data found for dealer $dealerCode',
+      );
+    }
+
+    final latestDateString = rows.first['effective_date'] as String;
+
+    final latestDate = DateTime.parse(latestDateString);
+
+    final latestRows = rows
+        .where((row) => row['effective_date'] == latestDateString)
+        .toList();
+
+    return SuccessResult(
+      _mapPriceLetterRows(
+        rows: latestRows,
+        dealerCode: dealerCode,
+        effectiveDate: latestDate,
+      ),
     );
+  } catch (e, stackTrace) {
+    return _toFailureResult(e, stackTrace);
   }
-
-  final latestDateString = rows.first['effective_date'] as String;
-
-  final latestDate = DateTime.parse(latestDateString);
-
-  final latestRows = rows
-      .where((row) => row['effective_date'] == latestDateString)
-      .toList();
-
-  return _mapPriceLetterRows(
-    rows: latestRows,
-    dealerCode: dealerCode,
-    effectiveDate: latestDate,
-  );
 }

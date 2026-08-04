@@ -4,6 +4,7 @@ import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/services/price_importer_parser.dart';
 import 'package:dealer_app/services/price_upsert_service.dart';
+import 'package:dealer_app/shared/models/result.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -187,21 +188,21 @@ class _DealerHomePageState extends State<DealerHomePage> {
   }
 
   Future<void> _testCurrentPriceLetter() async {
-    try {
-      final data = await fetchCurrentPriceLetterData(
-        supabase: Supabase.instance.client,
-        dealerCode: 171317,
-      );
+    final result = await fetchCurrentPriceLetterData(
+      supabase: Supabase.instance.client,
+      dealerCode: 171317,
+    );
 
-      debugPrint('=== Current Price Letter Test ===');
-      debugPrint('Dealer: ${data.dealerCode}');
-      debugPrint('Date: ${data.effectiveDate}');
-      debugPrint('MS: ${data.ms?.sellingPrice}');
-      debugPrint('HSD: ${data.hsd?.sellingPrice}');
-    } catch (e, st) {
-      debugPrint('CURRENT PRICE LETTER FAILED');
-      debugPrint(e.toString());
-      debugPrint(st.toString());
+    switch (result) {
+      case SuccessResult(data: final data):
+        debugPrint('=== Current Price Letter Test ===');
+        debugPrint('Dealer: ${data.dealerCode}');
+        debugPrint('Date: ${data.effectiveDate}');
+        debugPrint('MS: ${data.ms?.sellingPrice}');
+        debugPrint('HSD: ${data.hsd?.sellingPrice}');
+
+      case FailureResult(message: final message):
+        debugPrint(message);
     }
   }
 
