@@ -33,18 +33,11 @@ class PriceLetterData {
   final ProductPriceData? hsd;
 }
 
-Future<PriceLetterData> fetchPriceLetterData({
-  required SupabaseClient supabase,
+PriceLetterData _mapPriceLetterRows({
+  required List<dynamic> rows,
   required int dealerCode,
   required DateTime effectiveDate,
-}) async {
-  final dateStr = effectiveDate.toIso8601String().split('T').first;
-  final rows = await supabase
-      .from('dealer_prices')
-      .select()
-      .eq('dealer_code', dealerCode)
-      .eq('effective_date', dateStr);
-
+}) {
   ProductPriceData? ms;
   ProductPriceData? hsd;
 
@@ -70,8 +63,7 @@ Future<PriceLetterData> fetchPriceLetterData({
 
   if (ms == null && hsd == null) {
     throw PriceLetterUnavailableException(
-      'No price data found for dealer $dealerCode on '
-      '$dateStr',
+      'No price data found for dealer $dealerCode',
     );
   }
 
@@ -80,5 +72,56 @@ Future<PriceLetterData> fetchPriceLetterData({
     effectiveDate: effectiveDate,
     ms: ms,
     hsd: hsd,
+  );
+}
+
+Future<PriceLetterData> fetchPriceLetterData({
+  required SupabaseClient supabase,
+  required int dealerCode,
+  required DateTime effectiveDate,
+}) async {
+  final dateStr = effectiveDate.toIso8601String().split('T').first;
+
+  final rows = await supabase
+      .from('dealer_prices')
+      .select()
+      .eq('dealer_code', dealerCode)
+      .eq('effective_date', dateStr);
+
+  return _mapPriceLetterRows(
+    rows: rows,
+    dealerCode: dealerCode,
+    effectiveDate: effectiveDate,
+  );
+}
+
+Future<PriceLetterData> fetchCurrentPriceLetterData({
+  required SupabaseClient supabase,
+  required int dealerCode,
+}) async {
+  final rows = await supabase
+      .from('dealer_prices')
+      .select()
+      .eq('dealer_code', dealerCode)
+      .order('effective_date', ascending: false);
+
+  if (rows.isEmpty) {
+    throw PriceLetterUnavailableException(
+      'No price data found for dealer $dealerCode',
+    );
+  }
+
+  final latestDateString = rows.first['effective_date'] as String;
+
+  final latestDate = DateTime.parse(latestDateString);
+
+  final latestRows = rows
+      .where((row) => row['effective_date'] == latestDateString)
+      .toList();
+
+  return _mapPriceLetterRows(
+    rows: latestRows,
+    dealerCode: dealerCode,
+    effectiveDate: latestDate,
   );
 }

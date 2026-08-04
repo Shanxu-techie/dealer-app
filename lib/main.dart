@@ -2,18 +2,17 @@ import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
 import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
-import 'package:printing/printing.dart';
 import 'package:dealer_app/services/price_importer_parser.dart';
 import 'package:dealer_app/services/price_upsert_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'dealer_search/dealer_search_page.dart';
 import 'dealer_search/dealer_search_service.dart';
 import 'login/login_service.dart';
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,6 +186,25 @@ class _DealerHomePageState extends State<DealerHomePage> {
     }
   }
 
+  Future<void> _testCurrentPriceLetter() async {
+    try {
+      final data = await fetchCurrentPriceLetterData(
+        supabase: Supabase.instance.client,
+        dealerCode: 171317,
+      );
+
+      debugPrint('=== Current Price Letter Test ===');
+      debugPrint('Dealer: ${data.dealerCode}');
+      debugPrint('Date: ${data.effectiveDate}');
+      debugPrint('MS: ${data.ms?.sellingPrice}');
+      debugPrint('HSD: ${data.hsd?.sellingPrice}');
+    } catch (e, st) {
+      debugPrint('CURRENT PRICE LETTER FAILED');
+      debugPrint(e.toString());
+      debugPrint(st.toString());
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -217,21 +235,13 @@ class _DealerHomePageState extends State<DealerHomePage> {
     final data = PriceLetterData(
       dealerCode: 171317,
       effectiveDate: DateTime.now(),
-      ms: const ProductPriceData(
-        indentPrice: 250.00,
-        sellingPrice: 260.00,
-      ),
-      hsd: const ProductPriceData(
-        indentPrice: 240.00,
-        sellingPrice: 250.00,
-      ),
+      ms: const ProductPriceData(indentPrice: 250.00, sellingPrice: 260.00),
+      hsd: const ProductPriceData(indentPrice: 240.00, sellingPrice: 250.00),
     );
 
     final pdfBytes = await generatePriceLetterPdf(data);
 
-    await Printing.layoutPdf(
-      onLayout: (_) async => pdfBytes,
-    );
+    await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
   }
 
   Future<void> _signOut() async {
@@ -269,7 +279,12 @@ class _DealerHomePageState extends State<DealerHomePage> {
               ElevatedButton(
                 onPressed: testPriceLetterPdf,
                 child: const Text('Test Price Letter PDF'),
-              )
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _testCurrentPriceLetter,
+                child: const Text('Test Current Price Letter'),
+              ),
             ],
             if (kDebugMode && profile?['role'] == 'publisher') ...[
               ElevatedButton(
