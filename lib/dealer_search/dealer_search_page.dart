@@ -1,6 +1,8 @@
+import 'package:dealer_app/price_letter/price_letter_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../shared/models/result.dart';
 import 'dealer_search_service.dart';
@@ -154,6 +156,18 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
         return ListTile(
           title: Text(dealer.name),
           subtitle: Text('Code: ${dealer.dealerCode}'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PriceLetterPage(
+                  dealerCode: dealer.dealerCode,
+                  dealerName: dealer.name,
+                  supabase: Supabase.instance.client,
+                ),
+              ),
+            );
+          },
         );
       },
     );
