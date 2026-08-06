@@ -1,6 +1,6 @@
 import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
-import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
+import 'package:dealer_app/price_letter/price_letter_page.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/services/price_importer_parser.dart';
 import 'package:dealer_app/services/price_upsert_service.dart';
@@ -8,7 +8,6 @@ import 'package:dealer_app/shared/models/result.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'dealer_search/dealer_search_page.dart';
@@ -232,19 +231,6 @@ class _DealerHomePageState extends State<DealerHomePage> {
     }
   }
 
-  Future<void> testPriceLetterPdf() async {
-    final data = PriceLetterData(
-      dealerCode: 171317,
-      effectiveDate: DateTime.now(),
-      ms: const ProductPriceData(indentPrice: 250.00, sellingPrice: 260.00),
-      hsd: const ProductPriceData(indentPrice: 240.00, sellingPrice: 250.00),
-    );
-
-    final pdfBytes = await generatePriceLetterPdf(data);
-
-    await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
-  }
-
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
   }
@@ -278,11 +264,6 @@ class _DealerHomePageState extends State<DealerHomePage> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: testPriceLetterPdf,
-                child: const Text('Test Price Letter PDF'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
                 onPressed: _testCurrentPriceLetter,
                 child: const Text('Test Current Price Letter'),
               ),
@@ -313,6 +294,23 @@ class _DealerHomePageState extends State<DealerHomePage> {
                 child: const Text('Dealer Search'),
               ),
               const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 24),
+            if (kDebugMode) ...[
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PriceLetterPage(
+                        dealerCode: 171317,
+                        supabase: Supabase.instance.client,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Price Letter'),
+              ),
             ],
             const SizedBox(height: 24),
             ElevatedButton(onPressed: _signOut, child: const Text('Sign Out')),
