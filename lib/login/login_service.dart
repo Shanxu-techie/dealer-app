@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginService {
@@ -31,5 +32,12 @@ class LoginService {
     } on PostgrestException catch (e) {
       throw Exception('Failed to load user profile: ${e.message}');
     }
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+    debugPrint(
+      'Current session after signOut: ${_supabase.auth.currentSession}',
+    );
   }
 }
