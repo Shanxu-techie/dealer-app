@@ -1,4 +1,5 @@
 import 'package:dealer_app/login/login_page.dart';
+import 'package:dealer_app/login/role_router.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
@@ -53,12 +54,14 @@ class MyApp extends StatelessWidget {
           auth.currentSession,
         ),
         builder: (context, snapshot) {
+          debugPrint(
+            'Auth event: ${snapshot.data?.event}, '
+            'session: ${snapshot.data?.session != null}',
+          );
           final session = snapshot.data?.session;
-
           if (session != null) {
-            return const DealerHomePage();
+            return const RoleRouter();
           }
-
           return const LoginPage();
         },
       ),
