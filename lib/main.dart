@@ -1,7 +1,10 @@
 import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
+import 'package:dealer_app/price_letter/price_letter_page.dart';
+import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/services/price_importer_parser.dart';
 import 'package:dealer_app/services/price_upsert_service.dart';
+import 'package:dealer_app/shared/models/result.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -183,6 +186,25 @@ class _DealerHomePageState extends State<DealerHomePage> {
     }
   }
 
+  Future<void> _testCurrentPriceLetter() async {
+    final result = await fetchCurrentPriceLetterData(
+      supabase: Supabase.instance.client,
+      dealerCode: 171317,
+    );
+
+    switch (result) {
+      case SuccessResult(data: final data):
+        debugPrint('=== Current Price Letter Test ===');
+        debugPrint('Dealer: ${data.dealerCode}');
+        debugPrint('Date: ${data.effectiveDate}');
+        debugPrint('MS: ${data.ms?.sellingPrice}');
+        debugPrint('HSD: ${data.hsd?.sellingPrice}');
+
+      case FailureResult(message: final message):
+        debugPrint(message);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -241,6 +263,10 @@ class _DealerHomePageState extends State<DealerHomePage> {
                 child: const Text('Test Dealer Write'),
               ),
               const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _testCurrentPriceLetter,
+                child: const Text('Test Current Price Letter'),
+              ),
             ],
             if (kDebugMode && profile?['role'] == 'publisher') ...[
               ElevatedButton(
@@ -268,6 +294,23 @@ class _DealerHomePageState extends State<DealerHomePage> {
                 child: const Text('Dealer Search'),
               ),
               const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 24),
+            if (kDebugMode) ...[
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PriceLetterPage(
+                        dealerCode: 171317,
+                        supabase: Supabase.instance.client,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Price Letter'),
+              ),
             ],
             const SizedBox(height: 24),
             ElevatedButton(onPressed: _signOut, child: const Text('Sign Out')),
