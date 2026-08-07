@@ -137,10 +137,13 @@ Future<Result<PriceLetterData>> fetchCurrentPriceLetterData({
   required int dealerCode,
 }) async {
   try {
+    final todayStr = DateTime.now().toIso8601String().split('T').first;
+
     final rows = await supabase
         .from('dealer_prices')
         .select()
         .eq('dealer_code', dealerCode)
+        .lte('effective_date', todayStr)
         .order('effective_date', ascending: false);
 
     if (rows.isEmpty) {
@@ -150,7 +153,6 @@ Future<Result<PriceLetterData>> fetchCurrentPriceLetterData({
     }
 
     final latestDateString = rows.first['effective_date'] as String;
-
     final latestDate = DateTime.parse(latestDateString);
 
     final latestRows = rows
