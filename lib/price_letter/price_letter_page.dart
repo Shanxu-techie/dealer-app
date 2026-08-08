@@ -268,7 +268,18 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppSharedBar(
+          title: widget.dealerName ?? 'Price Letter',
+          role: widget.role,
+          hasUnseenNotification: false,
+          onProfileTap: null,
+          onLogoutTap: () async {
+            await LoginService().signOut();
+          },
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (error != null) {
       final noPriceData = exception is PriceLetterUnavailableException;
