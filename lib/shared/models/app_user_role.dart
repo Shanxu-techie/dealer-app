@@ -1,0 +1,1 @@
+enum AppUserRole { dealer, publisher }

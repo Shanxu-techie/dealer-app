@@ -1,5 +1,7 @@
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
+import 'package:dealer_app/shared/models/app_user_role.dart';
+import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -91,16 +93,13 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dealer Search'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await LoginService().signOut();
-            },
-          ),
-        ],
+      appBar: AppSharedBar(
+        title: 'Dealer Search',
+        role: AppUserRole.publisher,
+        onProfileTap: null,
+        onLogoutTap: () async {
+          await LoginService().signOut();
+        },
       ),
       body: Column(
         children: [
@@ -172,6 +171,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
               context,
               MaterialPageRoute(
                 builder: (_) => PriceLetterPage(
+                  role: AppUserRole.publisher,
                   dealerCode: dealer.dealerCode,
                   dealerName: dealer.name,
                   supabase: Supabase.instance.client,

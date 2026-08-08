@@ -30,15 +30,6 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       await _loginService.signIn(email: email, password: password);
-      debugPrint('LOGIN SUCCESS');
-      debugPrint('User ID: ${Supabase.instance.client.auth.currentUser?.id}');
-
-      final profile = await _loginService.getCurrentUserProfile();
-
-      debugPrint('PROFILE: $profile');
-      debugPrint('ROLE: ${profile['role']}');
-      debugPrint('DEALER CODE: ${profile['dealer_code']}');
-      debugPrint('NAME: ${profile['name']}');
     } on AuthException {
       if (!mounted) return;
 
