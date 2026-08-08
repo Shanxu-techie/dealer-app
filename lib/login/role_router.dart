@@ -2,6 +2,7 @@ import 'package:dealer_app/dealer_search/dealer_search_page.dart';
 import 'package:dealer_app/dealer_search/dealer_search_service.dart';
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
+import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,6 +37,7 @@ class _RoleRouterState extends State<RoleRouter> {
         return PriceLetterPage(
           dealerCode: profile['dealer_code'] as int,
           supabase: Supabase.instance.client,
+          role: AppUserRole.dealer,
         );
       case 'publisher':
         return DealerSearchPage(

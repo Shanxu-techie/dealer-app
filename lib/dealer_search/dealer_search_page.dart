@@ -1,5 +1,6 @@
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
+import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -172,6 +173,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
               context,
               MaterialPageRoute(
                 builder: (_) => PriceLetterPage(
+                  role: AppUserRole.publisher,
                   dealerCode: dealer.dealerCode,
                   dealerName: dealer.name,
                   supabase: Supabase.instance.client,

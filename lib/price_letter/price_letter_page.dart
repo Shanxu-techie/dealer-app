@@ -4,6 +4,7 @@ import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/price_letter/widgets/price_section.dart';
+import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
