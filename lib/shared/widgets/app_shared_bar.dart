@@ -11,11 +11,13 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
     this.onNotificationsTap,
     this.onProfileTap,
     required this.onLogoutTap,
+    this.automaticallyImplyLeading = true,
   });
 
   final String title;
   final AppUserRole role;
   final bool hasUnseenNotification;
+  final bool automaticallyImplyLeading;
 
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onProfileTap;
@@ -27,6 +29,7 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: automaticallyImplyLeading,
       title: Text(title),
       actions: [
         if (role == AppUserRole.dealer)
