@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/price_letter/widgets/price_section.dart';
+import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -16,12 +18,14 @@ class PriceLetterPage extends StatefulWidget {
     super.key,
     required this.dealerCode,
     required this.supabase,
+    required this.role,
     this.dealerName,
   });
 
   final int dealerCode;
   final SupabaseClient supabase;
   final String? dealerName;
+  final AppUserRole role;
 
   @override
   State<PriceLetterPage> createState() => _PriceLetterPageState();
@@ -269,7 +273,15 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
       final noPriceData = exception is PriceLetterUnavailableException;
 
       return Scaffold(
-        appBar: AppBar(title: Text(widget.dealerName ?? 'Price Letter')),
+        appBar: AppSharedBar(
+          title: widget.dealerName ?? 'Price Letter',
+          role: widget.role,
+          hasUnseenNotification: false,
+          onProfileTap: null,
+          onLogoutTap: () async {
+            await LoginService().signOut();
+          },
+        ),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -302,7 +314,15 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     }
     final data = priceLetter!;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.dealerName ?? 'Price Letter')),
+      appBar: AppSharedBar(
+        title: widget.dealerName ?? 'Price Letter',
+        role: widget.role,
+        hasUnseenNotification: false,
+        onProfileTap: null,
+        onLogoutTap: () async {
+          await LoginService().signOut();
+        },
+      ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.all(16),
         child: FilledButton.icon(
