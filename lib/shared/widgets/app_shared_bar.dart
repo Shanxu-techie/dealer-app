@@ -1,6 +1,5 @@
+import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:flutter/material.dart';
-
-enum AppUserRole { dealer, publisher }
 
 class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   const AppSharedBar({
