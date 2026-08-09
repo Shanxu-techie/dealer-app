@@ -28,6 +28,8 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: Theme.of(context).colorScheme.secondary,
+      foregroundColor: Theme.of(context).colorScheme.onSecondary,
       automaticallyImplyLeading: automaticallyImplyLeading,
       title: Text(title),
       actions: [
@@ -53,7 +55,7 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         PopupMenuButton<String>(
           tooltip: 'Menu',
-          icon: const Icon(Icons.account_circle_outlined),
+          icon: const Icon(Icons.more_vert),
           onSelected: (value) {
             switch (value) {
               case 'profile':
@@ -65,8 +67,20 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           itemBuilder: (context) => const [
-            PopupMenuItem(value: 'profile', child: Text('Profile')),
-            PopupMenuItem(value: 'logout', child: Text('Logout')),
+            PopupMenuItem(
+              value: 'profile',
+              child: ListTile(
+                leading: Icon(Icons.person_outline),
+                title: Text('Profile'),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'logout',
+              child: ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Logout'),
+              ),
+            ),
           ],
         ),
       ],

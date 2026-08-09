@@ -1,6 +1,7 @@
 import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/role_router.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
+import 'package:dealer_app/shared/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
     final auth = Supabase.instance.client.auth;
 
     return MaterialApp(
+      theme: AppThemes.lightTheme,
       home: StreamBuilder<AuthState>(
         stream: auth.onAuthStateChange,
         initialData: AuthState(

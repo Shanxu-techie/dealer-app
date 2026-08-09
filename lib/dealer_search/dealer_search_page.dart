@@ -1,6 +1,8 @@
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
 import 'package:dealer_app/shared/models/app_user_role.dart';
+import 'package:dealer_app/shared/utils/dimensions.dart';
+import 'package:dealer_app/shared/utils/spacing.dart';
 import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -104,7 +106,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(Dimensions.paddingMedium),
             child: TextField(
               controller: _searchController,
               keyboardType: TextInputType.number,
@@ -112,12 +114,11 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
               decoration: const InputDecoration(
                 hintText: 'Search by dealer code...',
                 prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
               ),
               onChanged: _onSearchChanged,
             ),
           ),
-          const SizedBox(height: 8),
+          Spacing.smallY,
           Expanded(child: _buildDealerList()),
         ],
       ),
@@ -125,7 +126,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
   }
 
   Widget _buildDealerList() {
-    final List<DealerSummary> items = _filteredDealers;
+    final List items = _filteredDealers;
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -133,36 +134,46 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Unable to load dealers. Check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(Dimensions.paddingMedium),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                _errorMessage!,
+                'Unable to load dealers. Check your connection and try again.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
+              if (kDebugMode) ...[
+                Spacing.smallY,
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              Spacing.mediumY,
+              FilledButton(onPressed: _loadDealers, child: const Text('Retry')),
             ],
-            const SizedBox(height: 12),
-            FilledButton(onPressed: _loadDealers, child: const Text('Retry')),
-          ],
+          ),
         ),
       );
     }
 
     if (items.isEmpty) {
-      return const Center(child: Text('No dealers found'));
+      return Center(
+        child: Text(
+          'No dealers found',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      );
     }
 
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
         final dealer = items[index];
+
         return ListTile(
           title: Text(dealer.name),
           subtitle: Text('Code: ${dealer.dealerCode}'),

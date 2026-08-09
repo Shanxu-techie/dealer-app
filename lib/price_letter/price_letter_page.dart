@@ -5,6 +5,8 @@ import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
 import 'package:dealer_app/price_letter/widgets/price_section.dart';
 import 'package:dealer_app/shared/models/app_user_role.dart';
+import 'package:dealer_app/shared/utils/dimensions.dart';
+import 'package:dealer_app/shared/utils/spacing.dart';
 import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -145,13 +147,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         previous.sellingPrice != next.sellingPrice;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _subscribeToPriceUpdates();
-    _loadPriceLetter();
-  }
-
   Future<void> _loadPriceLetter({bool showUpdateBanner = false}) async {
     if (_isRefreshing) return;
     _isRefreshing = true;
@@ -258,6 +253,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _subscribeToPriceUpdates();
+    _loadPriceLetter();
+  }
+
+  @override
   void dispose() {
     _refreshDebounce?.cancel();
     _refreshRetry?.cancel();
@@ -270,7 +272,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     if (loading) {
       return Scaffold(
         appBar: AppSharedBar(
-          title: widget.dealerName ?? 'Price Letter',
+          title: 'Price Letter',
           role: widget.role,
           hasUnseenNotification: false,
           onProfileTap: null,
@@ -286,7 +288,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
 
       return Scaffold(
         appBar: AppSharedBar(
-          title: widget.dealerName ?? 'Price Letter',
+          title: 'Price Letter',
           role: widget.role,
           hasUnseenNotification: false,
           onProfileTap: null,
@@ -295,31 +297,35 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           },
         ),
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                noPriceData
-                    ? 'No price letter is available for this dealer yet.'
-                    : error!,
-                textAlign: TextAlign.center,
-              ),
-
-              if (!noPriceData) ...[
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () {
-                    setState(() {
-                      loading = true;
-                      error = null;
-                      exception = null;
-                    });
-                    _loadPriceLetter();
-                  },
-                  child: const Text('Retry'),
+          child: Padding(
+            padding: const EdgeInsets.all(Dimensions.paddingMedium),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  noPriceData
+                      ? 'No price letter is available for this dealer yet.'
+                      : error!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
+
+                if (!noPriceData) ...[
+                  Spacing.mediumY,
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        loading = true;
+                        error = null;
+                        exception = null;
+                      });
+                      _loadPriceLetter();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       );
@@ -327,7 +333,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     final data = priceLetter!;
     return Scaffold(
       appBar: AppSharedBar(
-        title: widget.dealerName ?? 'Price Letter',
+        title: 'Price Letter',
         role: widget.role,
         hasUnseenNotification: false,
         onProfileTap: null,
@@ -336,13 +342,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         },
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(16),
+        minimum: const EdgeInsets.all(Dimensions.paddingMedium),
         child: FilledButton.icon(
           onPressed: generatingPdf ? null : _generatePdf,
           icon: generatingPdf
               ? const SizedBox(
-                  width: 18,
-                  height: 18,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.picture_as_pdf),
@@ -350,36 +356,44 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(Dimensions.paddingLarge),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.dealerName?.trim().isNotEmpty == true) ...[
+              Text(
+                widget.dealerName!,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              Spacing.smallY,
+            ],
             Row(
               children: [
                 Text(
-                  'Dealer #${data.dealerCode}',
+                  'Code# ${data.dealerCode}',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   'Effective ${DateFormat('dd MMM yyyy').format(data.effectiveDate)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.secondary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            Spacing.largeY,
             const Divider(),
-            const SizedBox(height: 24),
+            Spacing.largeY,
             Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(Dimensions.paddingMedium),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     PriceSection(title: 'MS', product: data.ms),
-                    Divider(height: 32),
+                    const Divider(height: 32),
                     PriceSection(title: 'HSD', product: data.hsd),
                   ],
                 ),

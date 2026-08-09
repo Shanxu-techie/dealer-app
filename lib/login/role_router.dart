@@ -36,6 +36,7 @@ class _RoleRouterState extends State<RoleRouter> {
       case 'dealer':
         return PriceLetterPage(
           dealerCode: profile['dealer_code'] as int,
+          dealerName: profile['name'] as String?,
           supabase: Supabase.instance.client,
           role: AppUserRole.dealer,
         );

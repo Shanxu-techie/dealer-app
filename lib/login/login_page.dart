@@ -1,4 +1,6 @@
 import 'package:dealer_app/login/login_service.dart';
+import 'package:dealer_app/shared/utils/dimensions.dart';
+import 'package:dealer_app/shared/utils/spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -70,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(Dimensions.paddingLarge),
               child: Form(
                 key: formKey,
                 child: Column(
@@ -82,21 +84,20 @@ class _LoginPageState extends State<LoginPage> {
                       fit: BoxFit.contain,
                     ),
 
-                    const SizedBox(height: 20),
+                    Spacing.largeY,
 
-                    const Text(
+                    Text(
                       'Welcome Back,',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
 
-                    const SizedBox(height: 6),
+                    Spacing.smallY,
 
                     const Text('Sign in to continue'),
 
-                    const SizedBox(height: 52),
+                    SizedBox(height: Dimensions.spacingLarge * 2),
 
                     TextFormField(
                       controller: emailController,
@@ -160,6 +161,11 @@ class _LoginPageState extends State<LoginPage> {
                             : () {
                                 // Password reset will be added later.
                               },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.secondary,
+                        ),
                         child: const Text('Forgot Password?'),
                       ),
                     ),
@@ -171,11 +177,6 @@ class _LoginPageState extends State<LoginPage> {
                       height: 48,
                       child: FilledButton(
                         onPressed: isLoading ? null : _login,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
                         child: isLoading
                             ? const SizedBox(
                                 width: 22,
@@ -184,7 +185,16 @@ class _LoginPageState extends State<LoginPage> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Login'),
+                            : Text(
+                                'Login',
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                    ),
+                              ),
                       ),
                     ),
                   ],
