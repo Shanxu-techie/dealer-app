@@ -1,4 +1,4 @@
-import 'package:dealer_app/services/price_importer_parser.dart';
+import 'package:dealer_app/price_upload/price_importer_parser.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BatchResult {
