@@ -5,7 +5,7 @@ class PriceSeenStorage {
   PriceSeenStorage({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  static const String _keyPrefix = 'last_seen_effective_date_';
+  static const String _keyPrefix = 'last_seen_snapshot_';
 
   final FlutterSecureStorage _storage;
 
