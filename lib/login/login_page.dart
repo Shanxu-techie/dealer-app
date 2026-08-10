@@ -32,6 +32,15 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       await _loginService.signIn(email: email, password: password);
+    } on AuthRetryableFetchException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No internet connection. Check your network and try again.',
+          ),
+        ),
+      );
     } on AuthException {
       if (!mounted) return;
 
@@ -103,6 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
                       enabled: !isLoading,
+                      autofillHints: const [AutofillHints.email],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter Email';
