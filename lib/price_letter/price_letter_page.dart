@@ -24,12 +24,16 @@ class PriceLetterPage extends StatefulWidget {
     required this.supabase,
     required this.role,
     this.dealerName,
+    this.initialPriceLetter,
+    required this.isHistorical,
   });
 
   final int dealerCode;
   final SupabaseClient supabase;
   final String? dealerName;
   final AppUserRole role;
+  final PriceLetterData? initialPriceLetter;
+  final bool isHistorical;
 
   @override
   State<PriceLetterPage> createState() => _PriceLetterPageState();
@@ -38,6 +42,7 @@ class PriceLetterPage extends StatefulWidget {
 class _PriceLetterPageState extends State<PriceLetterPage> {
   PriceLetterData? priceLetter;
   String? error;
+  String? _bodyError;
   bool loading = true;
   bool generatingPdf = false;
   bool _hasUnseenNotification = false;
@@ -45,6 +50,8 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
 
   Timer? _refreshDebounce;
   Timer? _refreshRetry;
+
+  DateTime? _selectedDate;
 
   final PriceSeenStorage _priceSeenStorage = PriceSeenStorage();
 
@@ -224,6 +231,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
 
           setState(() {
             priceLetter = data;
+            _selectedDate = data.effectiveDate;
             exception = null;
             error = null;
             loading = false;
@@ -276,9 +284,96 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     }
   }
 
+  void _showPriceLetterDateSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose a date to view its price letter.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text('Choose a date'),
+                  trailing: const Icon(Icons.chevron_right),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _selectPriceLetterDate();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _selectPriceLetterDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final earliestDate = today.subtract(const Duration(days: 29));
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: priceLetter?.effectiveDate ?? today,
+      firstDate: earliestDate,
+      lastDate: today,
+    );
+
+    if (!mounted || selectedDate == null) return;
+
+    await _loadPriceLetterForDate(selectedDate);
+  }
+
+  Future<void> _loadPriceLetterForDate(DateTime selectedDate) async {
+    setState(() {
+      _selectedDate = selectedDate;
+      _bodyError = null;
+    });
+
+    final result = await fetchPriceLetterData(
+      supabase: widget.supabase,
+      dealerCode: widget.dealerCode,
+      effectiveDate: selectedDate,
+    );
+
+    if (!mounted) return;
+
+    switch (result) {
+      case SuccessResult(data: final data):
+        setState(() {
+          priceLetter = data;
+          _selectedDate = data.effectiveDate;
+          _bodyError = null;
+        });
+
+      case FailureResult(message: final message):
+        setState(() {
+          _bodyError = message;
+        });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    if (widget.isHistorical && widget.initialPriceLetter != null) {
+      priceLetter = widget.initialPriceLetter;
+      _selectedDate = widget.initialPriceLetter!.effectiveDate;
+      loading = false;
+      return;
+    }
     _subscribeToPriceUpdates();
     _loadPriceLetter();
   }
@@ -287,7 +382,9 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   void dispose() {
     _refreshDebounce?.cancel();
     _refreshRetry?.cancel();
-    widget.supabase.removeChannel(_priceLetterChannel);
+    if (!widget.isHistorical) {
+      widget.supabase.removeChannel(_priceLetterChannel);
+    }
     super.dispose();
   }
 
@@ -298,11 +395,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: _hasUnseenNotification,
+          hasUnseenNotification: widget.isHistorical
+              ? false
+              : _hasUnseenNotification,
           notificationMsPrice: priceLetter?.ms?.sellingPrice,
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
-          onNotificationsTap: _onNotificationsTap,
+          onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -318,11 +417,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: _hasUnseenNotification,
+          hasUnseenNotification: widget.isHistorical
+              ? false
+              : _hasUnseenNotification,
           notificationMsPrice: priceLetter?.ms?.sellingPrice,
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
-          onNotificationsTap: _onNotificationsTap,
+          onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -363,34 +464,39 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
       );
     }
     final data = priceLetter!;
+    final displayDate = _selectedDate ?? data.effectiveDate;
     return Scaffold(
       appBar: AppSharedBar(
         title: 'Price Letter',
         role: widget.role,
-        hasUnseenNotification: _hasUnseenNotification,
+        hasUnseenNotification: widget.isHistorical
+            ? false
+            : _hasUnseenNotification,
         notificationMsPrice: priceLetter?.ms?.sellingPrice,
         notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
         notificationEffectiveDate: priceLetter?.effectiveDate,
-        onNotificationsTap: _onNotificationsTap,
+        onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
         onProfileTap: null,
         onLogoutTap: () async {
           await LoginService().signOutAndReturnToLogin(context);
         },
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(Dimensions.paddingMedium),
-        child: FilledButton.icon(
-          onPressed: generatingPdf ? null : _generatePdf,
-          icon: generatingPdf
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.picture_as_pdf),
-          label: Text(generatingPdf ? 'Generating PDF...' : 'Save PDF'),
-        ),
-      ),
+      bottomNavigationBar: _bodyError != null
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.all(Dimensions.paddingMedium),
+              child: FilledButton.icon(
+                onPressed: generatingPdf ? null : _generatePdf,
+                icon: generatingPdf
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf),
+                label: Text(generatingPdf ? 'Generating PDF...' : 'Save PDF'),
+              ),
+            ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(Dimensions.paddingLarge),
         child: Column(
@@ -410,11 +516,33 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const Spacer(),
-                Text(
-                  'Effective ${DateFormat('dd MMM yyyy').format(data.effectiveDate)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
-                    fontWeight: FontWeight.w600,
+                InkWell(
+                  onTap: _showPriceLetterDateSheet,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Effective ${DateFormat('dd MMM yyyy').format(displayDate)}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.secondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -422,19 +550,41 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             Spacing.largeY,
             const Divider(),
             Spacing.largeY,
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(Dimensions.paddingMedium),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    PriceSection(title: 'MS', product: data.ms),
-                    const Divider(height: 32),
-                    PriceSection(title: 'HSD', product: data.hsd),
-                  ],
-                ),
-              ),
-            ),
+            _bodyError == null
+                ? Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(Dimensions.paddingMedium),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PriceSection(title: 'MS', product: data.ms),
+                          const Divider(height: 32),
+                          PriceSection(title: 'HSD', product: data.hsd),
+                        ],
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(Dimensions.paddingLarge),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          Spacing.mediumY,
+                          Text(
+                            _bodyError!,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
           ],
         ),
       ),
