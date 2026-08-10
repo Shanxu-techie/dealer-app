@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dealer_app/services/price_importer_parser.dart';
+import 'package:dealer_app/price_upload/price_importer_parser.dart';
 
 Future<void> main() async {
   final bytes = await File('data/sample_price_letter.xlsx').readAsBytes();

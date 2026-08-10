@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginService {
@@ -36,8 +36,16 @@ class LoginService {
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
-    debugPrint(
-      'Current session after signOut: ${_supabase.auth.currentSession}',
-    );
+  }
+
+  Future<void> signOutAndReturnToLogin(BuildContext context) async {
+    await signOut();
+
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).popUntil((route) => route.isFirst);
   }
 }

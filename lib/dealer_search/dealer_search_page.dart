@@ -1,5 +1,6 @@
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_page.dart';
+import 'package:dealer_app/price_upload/price_upload_page.dart';
 import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:dealer_app/shared/utils/dimensions.dart';
 import 'package:dealer_app/shared/utils/spacing.dart';
@@ -100,7 +101,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
         role: AppUserRole.publisher,
         onProfileTap: null,
         onLogoutTap: () async {
-          await LoginService().signOut();
+          await LoginService().signOutAndReturnToLogin(context);
         },
       ),
       body: Column(
@@ -121,6 +122,19 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
           Spacing.smallY,
           Expanded(child: _buildDealerList()),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  PriceUploadPage(supabase: Supabase.instance.client),
+            ),
+          );
+        },
+        tooltip: 'Upload price letter',
+        child: const Icon(Icons.upload_file),
       ),
     );
   }

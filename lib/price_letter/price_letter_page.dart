@@ -277,7 +277,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           hasUnseenNotification: false,
           onProfileTap: null,
           onLogoutTap: () async {
-            await LoginService().signOut();
+            await LoginService().signOutAndReturnToLogin(context);
           },
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -293,7 +293,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           hasUnseenNotification: false,
           onProfileTap: null,
           onLogoutTap: () async {
-            await LoginService().signOut();
+            await LoginService().signOutAndReturnToLogin(context);
           },
         ),
         body: Center(
@@ -338,7 +338,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         hasUnseenNotification: false,
         onProfileTap: null,
         onLogoutTap: () async {
-          await LoginService().signOut();
+          await LoginService().signOutAndReturnToLogin(context);
         },
       ),
       bottomNavigationBar: SafeArea(

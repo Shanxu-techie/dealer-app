@@ -1,7 +1,7 @@
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
-import 'package:dealer_app/services/price_importer_parser.dart';
-import 'package:dealer_app/services/price_upsert_service.dart';
+import 'package:dealer_app/price_upload/price_importer_parser.dart';
+import 'package:dealer_app/price_upload/price_upsert_service.dart';
 import 'package:dealer_app/shared/models/result.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
