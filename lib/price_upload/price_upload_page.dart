@@ -74,11 +74,13 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
   }
 
   Future<void> _pickEffectiveDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
+      initialDate: today,
+      firstDate: today.subtract(const Duration(days: 30)),
+      lastDate: today.add(const Duration(days: 30)),
     );
 
     if (selectedDate == null) {
