@@ -67,8 +67,10 @@ class _RoleRouterState extends State<RoleRouter> {
           try {
             destination = _destinationFor(snapshot.data!);
           } catch (e, st) {
-            debugPrint('Role routing failed: $e');
-            debugPrintStack(stackTrace: st);
+            if (kDebugMode) {
+              debugPrint('Role routing failed: $e');
+              debugPrintStack(stackTrace: st);
+            }
             error = e;
           }
         }
