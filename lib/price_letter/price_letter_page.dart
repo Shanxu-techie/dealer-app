@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_letter/price_letter_pdf_service.dart';
 import 'package:dealer_app/price_letter/price_letter_service.dart';
+import 'package:dealer_app/price_letter/price_seen_storage.dart';
 import 'package:dealer_app/price_letter/widgets/price_section.dart';
 import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:dealer_app/shared/utils/dimensions.dart';
@@ -39,10 +40,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   String? error;
   bool loading = true;
   bool generatingPdf = false;
+  bool _hasUnseenNotification = false;
   Object? exception;
 
   Timer? _refreshDebounce;
   Timer? _refreshRetry;
+
+  final PriceSeenStorage _priceSeenStorage = PriceSeenStorage();
 
   late final RealtimeChannel _priceLetterChannel;
 
@@ -106,6 +110,33 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             }
           }
         });
+  }
+
+  Future<void> _onNotificationsTap() async {
+    final data = priceLetter;
+    if (data == null) return;
+
+    final result = await _priceSeenStorage.markAsSeen(
+      dealerCode: widget.dealerCode,
+      effectiveDate: data.effectiveDate,
+    );
+
+    if (!mounted) return;
+
+    switch (result) {
+      case SuccessResult():
+        setState(() {
+          _hasUnseenNotification = false;
+        });
+
+      case FailureResult(message: final message, exception: final exception):
+        if (kDebugMode) {
+          debugPrint(
+            'Failed to mark notification as seen: '
+            '$message, exception=$exception',
+          );
+        }
+    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -186,6 +217,32 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
 
           final hasChanged = _priceLetterChanged(previousPriceLetter, data);
 
+          final seenResult = await _priceSeenStorage.getLastSeenEffectiveDate(
+            widget.dealerCode,
+          );
+
+          if (!mounted) return;
+
+          switch (seenResult) {
+            case SuccessResult(data: final lastSeenEffectiveDate):
+              _hasUnseenNotification =
+                  lastSeenEffectiveDate == null ||
+                  data.effectiveDate.isAfter(lastSeenEffectiveDate);
+
+            case FailureResult(
+              message: final message,
+              exception: final storageException,
+            ):
+              if (kDebugMode) {
+                debugPrint(
+                  'Failed to read price seen state: '
+                  '$message, exception=$storageException',
+                );
+              }
+
+              _hasUnseenNotification = false;
+          }
+
           if (kDebugMode) {
             debugPrint('hasChanged = $hasChanged');
           }
@@ -196,6 +253,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             loading = false;
           });
           if (showUpdateBanner && hasChanged) {
+            if (!mounted) return;
             final messenger = ScaffoldMessenger.of(context);
 
             messenger.hideCurrentSnackBar();
@@ -274,7 +332,8 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: false,
+          hasUnseenNotification: _hasUnseenNotification,
+          onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -290,7 +349,8 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: false,
+          hasUnseenNotification: _hasUnseenNotification,
+          onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -335,7 +395,8 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
       appBar: AppSharedBar(
         title: 'Price Letter',
         role: widget.role,
-        hasUnseenNotification: false,
+        hasUnseenNotification: _hasUnseenNotification,
+        onNotificationsTap: _onNotificationsTap,
         onProfileTap: null,
         onLogoutTap: () async {
           await LoginService().signOutAndReturnToLogin(context);
