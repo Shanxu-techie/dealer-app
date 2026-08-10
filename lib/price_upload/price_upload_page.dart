@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:dealer_app/login/login_service.dart';
 import 'package:dealer_app/price_upload/price_upsert_service.dart';
+import 'package:dealer_app/price_upload/widgets/price_upload_error_view.dart';
 import 'package:dealer_app/price_upload/widgets/price_upload_file_selected.dart';
 import 'package:dealer_app/price_upload/widgets/price_upload_idle.dart';
 import 'package:dealer_app/price_upload/widgets/price_upload_parse_error.dart';
@@ -14,6 +13,7 @@ import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:dealer_app/shared/utils/dimensions.dart';
 import 'package:dealer_app/shared/widgets/app_shared_bar.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,33 +44,62 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
   Uint8List? _selectedFileBytes;
   DateTime? _effectiveDate;
   ParseResult? _parseResult;
-  String? _uploadError;
+  List<BatchResult>? _uploadErrors;
+  String? _parseError;
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx'],
-      withData: true,
-    );
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        withData: true,
+      );
 
-    if (result == null || result.files.isEmpty) {
-      return;
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final file = result.files.single;
+
+      if (file.bytes == null) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to read the selected file.')),
+        );
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedFile = file;
+        _selectedFileBytes = file.bytes;
+        _effectiveDate = null;
+        _parseResult = null;
+        _uploadErrors = null;
+        _parseError = null;
+        _state = PriceUploadState.fileSelected;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('File picker failed: $e');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open the file picker. Please try again.'),
+        ),
+      );
     }
-
-    final file = result.files.single;
-
-    if (file.bytes == null) {
-      return;
-    }
-
-    setState(() {
-      _selectedFile = file;
-      _selectedFileBytes = file.bytes;
-      _effectiveDate = null;
-      _parseResult = null;
-      _uploadError = null;
-      _state = PriceUploadState.fileSelected;
-    });
   }
 
   Future<void> _pickEffectiveDate() async {
@@ -104,28 +133,52 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
       _state = PriceUploadState.validating;
     });
 
-    const parser = PriceImportParser();
+    try {
+      const parser = PriceImportParser();
 
-    final result = parser.parse(bytes, effectiveDate: effectiveDate);
+      final result = parser.parse(bytes, effectiveDate: effectiveDate);
 
-    if (!mounted) {
-      return;
-    }
+      if (!mounted) {
+        return;
+      }
 
-    if (result.hasErrors) {
+      if (result.hasErrors) {
+        setState(() {
+          _parseResult = result;
+          _parseError = null;
+          _uploadErrors = null;
+          _state = PriceUploadState.error;
+        });
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('Parsed ${result.rows.length} rows successfully.');
+      }
+
       setState(() {
         _parseResult = result;
+        _parseError = null;
+        _uploadErrors = null;
+        _state = PriceUploadState.validated;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('Price file parsing failed: $e');
+      }
+
+      setState(() {
+        _parseResult = null;
+        _parseError =
+            'Unable to read the selected file. Please make sure it is a valid XLSX file.';
+        _uploadErrors = null;
         _state = PriceUploadState.error;
       });
-      return;
     }
-
-    debugPrint('Parsed ${result.rows.length} rows successfully.');
-
-    setState(() {
-      _parseResult = result;
-      _state = PriceUploadState.validated;
-    });
   }
 
   void _resetUpload() {
@@ -135,7 +188,8 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
       _selectedFileBytes = null;
       _effectiveDate = null;
       _parseResult = null;
-      _uploadError = null;
+      _uploadErrors = null;
+      _parseError = null;
     });
   }
 
@@ -148,7 +202,8 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
 
     setState(() {
       _state = PriceUploadState.uploading;
-      _uploadError = null;
+      _uploadErrors = null;
+      _parseError = null;
     });
 
     try {
@@ -165,17 +220,12 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
         return;
       }
 
-      final failedBatch = summary.batchResults.firstWhere(
-        (batch) => !batch.success,
-      );
+      final failedBatches = summary.batchResults
+          .where((batch) => !batch.success)
+          .toList();
 
       setState(() {
-        _uploadError =
-            'Batch ${failedBatch.batchNumber} '
-            '(${failedBatch.sheet}, rows ${failedBatch.startRow}-'
-            '${failedBatch.endRow}) failed: '
-            '${failedBatch.errorMessage ?? 'Unknown upload error.'}';
-
+        _uploadErrors = failedBatches;
         _state = PriceUploadState.error;
       });
     } catch (e) {
@@ -183,10 +233,23 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
         return;
       }
 
-      debugPrint('Price upload failed: $e');
+      if (kDebugMode) {
+        debugPrint('Price upload failed unexpectedly: $e');
+      }
 
       setState(() {
-        _uploadError = 'Failed to upload prices: $e';
+        _uploadErrors = [
+          const BatchResult(
+            batchNumber: 0,
+            sheet: '',
+            startRow: 0,
+            endRow: 0,
+            rowCount: 0,
+            success: false,
+            errorMessage:
+                'Something went wrong while uploading. Please try again.',
+          ),
+        ];
         _state = PriceUploadState.error;
       });
     }
@@ -194,15 +257,25 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppSharedBar(
-        title: 'Price Upload',
-        role: AppUserRole.publisher,
-        onLogoutTap: () async {
-          await LoginService().signOut();
-        },
+    return PopScope(
+      canPop: _state != PriceUploadState.uploading,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _state == PriceUploadState.uploading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Upload in progress, please wait.')),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppSharedBar(
+          title: 'Price Upload',
+          role: AppUserRole.publisher,
+          onLogoutTap: () async {
+            await LoginService().signOutAndReturnToLogin(context);
+          },
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 
@@ -246,10 +319,17 @@ class _PriceUploadPageState extends State<PriceUploadPage> {
       case PriceUploadState.error:
         final result = _parseResult;
 
-        if (_uploadError != null) {
+        if (_uploadErrors != null) {
           return PriceUploadUploadError(
-            message: _uploadError!,
+            errors: _uploadErrors!,
             onTryAgain: _uploadPrices,
+            onChooseAnotherFile: _pickFile,
+          );
+        }
+
+        if (_parseError != null) {
+          return PriceUploadParseError(
+            message: _parseError!,
             onChooseAnotherFile: _pickFile,
           );
         }

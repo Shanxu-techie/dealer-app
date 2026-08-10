@@ -40,7 +40,7 @@ class PriceUploadFileSelected extends StatelessWidget {
             ),
             Spacing.smallY,
             Text(
-              'Ready to upload your price letter',
+              'Select an effective date, then validate the file.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

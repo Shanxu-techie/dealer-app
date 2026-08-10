@@ -20,10 +20,11 @@ class PriceUploadUploading extends StatelessWidget {
             ),
             Spacing.largeY,
             Text(
-              'Uploading prices',
+              'Updating dealer prices. Please wait...',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
             ),
             Spacing.mediumY,
             const CircularProgressIndicator(),

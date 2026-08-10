@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:dealer_app/price_upload/price_importer_parser.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BatchResult {
@@ -95,7 +99,8 @@ Future<UpsertSummary> upsertDealerPrices(
             .upsert(
               payload,
               onConflict: 'dealer_code,effective_date,product_name',
-            );
+            )
+            .timeout(const Duration(seconds: 30));
 
         batchResults.add(
           BatchResult(
@@ -107,7 +112,11 @@ Future<UpsertSummary> upsertDealerPrices(
             success: true,
           ),
         );
-      } on PostgrestException catch (e) {
+      } on TimeoutException catch (e) {
+        if (kDebugMode) {
+          debugPrint('Price upload batch timed out: $e');
+        }
+
         batchResults.add(
           BatchResult(
             batchNumber: batchResults.length + 1,
@@ -116,10 +125,48 @@ Future<UpsertSummary> upsertDealerPrices(
             endRow: chunk.last.rowNumber,
             rowCount: chunk.length,
             success: false,
-            errorMessage: e.message,
+            errorMessage:
+                'The server took too long to respond. Please try again.',
+          ),
+        );
+      } on SocketException catch (e) {
+        if (kDebugMode) {
+          debugPrint('Price upload batch failed (network): $e');
+        }
+
+        batchResults.add(
+          BatchResult(
+            batchNumber: batchResults.length + 1,
+            sheet: chunk.first.sheet,
+            startRow: chunk.first.rowNumber,
+            endRow: chunk.last.rowNumber,
+            rowCount: chunk.length,
+            success: false,
+            errorMessage:
+                'No internet connection. Check your network and try again.',
+          ),
+        );
+      } on PostgrestException catch (e) {
+        if (kDebugMode) {
+          debugPrint('Price upload batch failed (postgrest): $e');
+        }
+
+        batchResults.add(
+          BatchResult(
+            batchNumber: batchResults.length + 1,
+            sheet: chunk.first.sheet,
+            startRow: chunk.first.rowNumber,
+            endRow: chunk.last.rowNumber,
+            rowCount: chunk.length,
+            success: false,
+            errorMessage: 'Server error while saving this batch.',
           ),
         );
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Price upload batch failed: $e');
+        }
+
         batchResults.add(
           BatchResult(
             batchNumber: batchResults.length + 1,
@@ -128,12 +175,11 @@ Future<UpsertSummary> upsertDealerPrices(
             endRow: chunk.last.rowNumber,
             rowCount: chunk.length,
             success: false,
-            errorMessage: e.toString(),
+            errorMessage: 'Something went wrong while uploading this batch.',
           ),
         );
       }
     }
   }
-
   return UpsertSummary(totalRows: rows.length, batchResults: batchResults);
 }
