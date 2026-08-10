@@ -1,5 +1,6 @@
 import 'package:dealer_app/shared/models/app_user_role.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   const AppSharedBar({
@@ -11,6 +12,9 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
     this.onProfileTap,
     required this.onLogoutTap,
     this.automaticallyImplyLeading = true,
+    this.notificationMsPrice,
+    this.notificationHsdPrice,
+    this.notificationEffectiveDate,
   });
 
   final String title;
@@ -21,6 +25,10 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onProfileTap;
   final VoidCallback onLogoutTap;
+
+  final double? notificationMsPrice;
+  final double? notificationHsdPrice;
+  final DateTime? notificationEffectiveDate;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -46,13 +54,41 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
                 onNotificationsTap?.call();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'price_letter',
-                child: Text('New price update available'),
-              ),
-            ],
+            itemBuilder: (context) {
+              if (!hasUnseenNotification) {
+                return const [
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: ListTile(
+                      leading: Icon(Icons.notifications_none),
+                      title: Text('No new notifications'),
+                    ),
+                  ),
+                ];
+              }
+
+              return [
+                PopupMenuItem<String>(
+                  value: 'price_letter',
+                  child: ListTile(
+                    leading: const Icon(Icons.local_gas_station_outlined),
+                    title: const Text('New fuel price update'),
+                    subtitle: Text(
+                      [
+                        if (notificationMsPrice != null)
+                          'MS: ${notificationMsPrice!.toStringAsFixed(2)}',
+                        if (notificationHsdPrice != null)
+                          'HSD: ${notificationHsdPrice!.toStringAsFixed(2)}',
+                        if (notificationEffectiveDate != null)
+                          'Effective ${DateFormat('dd MMM yyyy').format(notificationEffectiveDate!)}',
+                      ].join('\n'),
+                    ),
+                  ),
+                ),
+              ];
+            },
           ),
+
         PopupMenuButton<String>(
           tooltip: 'Menu',
           icon: const Icon(Icons.more_vert),
@@ -67,14 +103,14 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           itemBuilder: (context) => const [
-            PopupMenuItem(
+            PopupMenuItem<String>(
               value: 'profile',
               child: ListTile(
                 leading: Icon(Icons.person_outline),
                 title: Text('Profile'),
               ),
             ),
-            PopupMenuItem(
+            PopupMenuItem<String>(
               value: 'logout',
               child: ListTile(
                 leading: Icon(Icons.logout),

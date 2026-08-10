@@ -13,42 +13,68 @@ class PriceSeenStorage {
     return '$_keyPrefix$dealerCode';
   }
 
-  Future<Result<DateTime?>> getLastSeenEffectiveDate(int dealerCode) async {
+  String _buildSnapshot({
+    required DateTime effectiveDate,
+    required double? msPrice,
+    required double? hsdPrice,
+  }) {
+    return [
+      effectiveDate.toIso8601String(),
+      msPrice?.toStringAsFixed(2),
+      hsdPrice?.toStringAsFixed(2),
+    ].join('|');
+  }
+
+  Future<Result<bool>> hasUnseenChange({
+    required int dealerCode,
+    required DateTime effectiveDate,
+    required double? msPrice,
+    required double? hsdPrice,
+  }) async {
     try {
-      final value = await _storage.read(key: _keyForDealer(dealerCode));
+      final currentSnapshot = _buildSnapshot(
+        effectiveDate: effectiveDate,
+        msPrice: msPrice,
+        hsdPrice: hsdPrice,
+      );
 
-      if (value == null) {
-        return const SuccessResult(null);
-      }
+      final storedSnapshot = await _storage.read(
+        key: _keyForDealer(dealerCode),
+      );
 
-      final effectiveDate = DateTime.tryParse(value);
-
-      if (effectiveDate == null) {
-        return FailureResult(
-          message: 'Invalid stored effective date for dealer $dealerCode.',
-          exception: FormatException(value),
+      if (storedSnapshot == null) {
+        await _storage.write(
+          key: _keyForDealer(dealerCode),
+          value: currentSnapshot,
         );
+
+        return const SuccessResult(false);
       }
 
-      return SuccessResult(effectiveDate);
+      return SuccessResult(storedSnapshot != currentSnapshot);
     } catch (e, stackTrace) {
       return FailureResult(
-        message: 'Failed to read seen state for dealer $dealerCode.',
+        message: 'Failed to check seen state for dealer $dealerCode.',
         exception: e,
         stackTrace: stackTrace,
       );
     }
   }
 
-  Future<Result<void>> markAsSeen({
+  Future<Result> markAsSeen({
     required int dealerCode,
     required DateTime effectiveDate,
+    required double? msPrice,
+    required double? hsdPrice,
   }) async {
     try {
-      await _storage.write(
-        key: _keyForDealer(dealerCode),
-        value: effectiveDate.toIso8601String(),
+      final snapshot = _buildSnapshot(
+        effectiveDate: effectiveDate,
+        msPrice: msPrice,
+        hsdPrice: hsdPrice,
       );
+
+      await _storage.write(key: _keyForDealer(dealerCode), value: snapshot);
 
       return const SuccessResult(null);
     } catch (e, stackTrace) {
@@ -60,7 +86,7 @@ class PriceSeenStorage {
     }
   }
 
-  Future<Result<void>> clear(int dealerCode) async {
+  Future<Result> clear(int dealerCode) async {
     try {
       await _storage.delete(key: _keyForDealer(dealerCode));
 

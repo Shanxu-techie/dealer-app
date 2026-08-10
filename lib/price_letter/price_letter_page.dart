@@ -119,6 +119,8 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     final result = await _priceSeenStorage.markAsSeen(
       dealerCode: widget.dealerCode,
       effectiveDate: data.effectiveDate,
+      msPrice: data.ms?.sellingPrice,
+      hsdPrice: data.hsd?.sellingPrice,
     );
 
     if (!mounted) return;
@@ -162,22 +164,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     });
   }
 
-  bool _priceLetterChanged(PriceLetterData? previous, PriceLetterData next) {
-    if (previous == null) return false;
-
-    return previous.effectiveDate != next.effectiveDate ||
-        _productChanged(previous.ms, next.ms) ||
-        _productChanged(previous.hsd, next.hsd);
-  }
-
-  bool _productChanged(ProductPriceData? previous, ProductPriceData? next) {
-    if (previous == null && next == null) return false;
-    if (previous == null || next == null) return true;
-
-    return previous.indentPrice != next.indentPrice ||
-        previous.sellingPrice != next.sellingPrice;
-  }
-
   Future<void> _loadPriceLetter({bool showUpdateBanner = false}) async {
     if (_isRefreshing) return;
     _isRefreshing = true;
@@ -205,29 +191,20 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             );
           }
 
-          final previousPriceLetter = priceLetter;
-
-          if (kDebugMode) {
-            debugPrint(
-              'Previous effectiveDate=${previousPriceLetter?.effectiveDate}, '
-              'MS=${previousPriceLetter?.ms?.sellingPrice}, '
-              'HSD=${previousPriceLetter?.hsd?.sellingPrice}',
-            );
-          }
-
-          final hasChanged = _priceLetterChanged(previousPriceLetter, data);
-
-          final seenResult = await _priceSeenStorage.getLastSeenEffectiveDate(
-            widget.dealerCode,
+          final unseenResult = await _priceSeenStorage.hasUnseenChange(
+            dealerCode: widget.dealerCode,
+            effectiveDate: data.effectiveDate,
+            msPrice: data.ms?.sellingPrice,
+            hsdPrice: data.hsd?.sellingPrice,
           );
 
           if (!mounted) return;
 
-          switch (seenResult) {
-            case SuccessResult(data: final lastSeenEffectiveDate):
-              _hasUnseenNotification =
-                  lastSeenEffectiveDate == null ||
-                  data.effectiveDate.isAfter(lastSeenEffectiveDate);
+          switch (unseenResult) {
+            case SuccessResult(data: final hasUnseenChange):
+              setState(() {
+                _hasUnseenNotification = hasUnseenChange;
+              });
 
             case FailureResult(
               message: final message,
@@ -235,33 +212,22 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             ):
               if (kDebugMode) {
                 debugPrint(
-                  'Failed to read price seen state: '
+                  'Failed to check price seen state: '
                   '$message, exception=$storageException',
                 );
               }
 
-              _hasUnseenNotification = false;
+              setState(() {
+                _hasUnseenNotification = false;
+              });
           }
 
-          if (kDebugMode) {
-            debugPrint('hasChanged = $hasChanged');
-          }
           setState(() {
             priceLetter = data;
             exception = null;
             error = null;
             loading = false;
           });
-          if (showUpdateBanner && hasChanged) {
-            if (!mounted) return;
-            final messenger = ScaffoldMessenger.of(context);
-
-            messenger.hideCurrentSnackBar();
-
-            messenger.showSnackBar(
-              const SnackBar(content: Text('Price updated')),
-            );
-          }
 
         case FailureResult(message: final message, exception: final exception):
           if (showUpdateBanner) {
@@ -333,6 +299,9 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           title: 'Price Letter',
           role: widget.role,
           hasUnseenNotification: _hasUnseenNotification,
+          notificationMsPrice: priceLetter?.ms?.sellingPrice,
+          notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
+          notificationEffectiveDate: priceLetter?.effectiveDate,
           onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
@@ -350,6 +319,9 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           title: 'Price Letter',
           role: widget.role,
           hasUnseenNotification: _hasUnseenNotification,
+          notificationMsPrice: priceLetter?.ms?.sellingPrice,
+          notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
+          notificationEffectiveDate: priceLetter?.effectiveDate,
           onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
@@ -396,6 +368,9 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         title: 'Price Letter',
         role: widget.role,
         hasUnseenNotification: _hasUnseenNotification,
+        notificationMsPrice: priceLetter?.ms?.sellingPrice,
+        notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
+        notificationEffectiveDate: priceLetter?.effectiveDate,
         onNotificationsTap: _onNotificationsTap,
         onProfileTap: null,
         onLogoutTap: () async {
