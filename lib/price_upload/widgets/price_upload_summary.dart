@@ -3,7 +3,6 @@ import 'package:dealer_app/shared/utils/dimensions.dart';
 import 'package:dealer_app/shared/utils/spacing.dart';
 import 'package:flutter/material.dart';
 
-
 class PriceUploadSummary extends StatelessWidget {
   final String fileName;
   final DateTime effectiveDate;
@@ -42,6 +41,7 @@ class PriceUploadSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dealerCount = result.rows.map((row) => row.dealerCode).toSet().length;
     final msCount = result.rows.where((row) => row.product == 'MS').length;
     final hsdCount = result.rows.where((row) => row.product == 'HSD').length;
 
@@ -69,6 +69,13 @@ class PriceUploadSummary extends StatelessWidget {
             '${effectiveDate.day}/'
                 '${effectiveDate.month}/'
                 '${effectiveDate.year}',
+          ),
+          Spacing.mediumY,
+          _buildSummaryRow(
+            context,
+            Icons.storefront_outlined,
+            'Dealers',
+            '$dealerCount',
           ),
           Spacing.mediumY,
           _buildSummaryRow(
