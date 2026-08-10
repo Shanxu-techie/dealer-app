@@ -101,7 +101,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
         role: AppUserRole.publisher,
         onProfileTap: null,
         onLogoutTap: () async {
-          await LoginService().signOut();
+          await LoginService().signOutAndReturnToLogin(context);
         },
       ),
       body: Column(
