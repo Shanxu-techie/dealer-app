@@ -2,6 +2,7 @@ import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/role_router.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
 import 'package:dealer_app/shared/utils/theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       theme: AppThemes.lightTheme,
+      debugShowCheckedModeBanner: false,
       home: StreamBuilder<AuthState>(
         stream: auth.onAuthStateChange,
         initialData: AuthState(
@@ -45,10 +47,12 @@ class MyApp extends StatelessWidget {
           auth.currentSession,
         ),
         builder: (context, snapshot) {
-          debugPrint(
-            'Auth event: ${snapshot.data?.event}, '
-            'session: ${snapshot.data?.session != null}',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              'Auth event: ${snapshot.data?.event}, '
+              'session: ${snapshot.data?.session != null}',
+            );
+          }
           final session = snapshot.data?.session;
           if (session != null) {
             return const RoleRouter();
