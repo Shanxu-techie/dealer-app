@@ -200,6 +200,7 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
                   dealerCode: dealer.dealerCode,
                   dealerName: dealer.name,
                   supabase: Supabase.instance.client,
+                  isHistorical: false,
                 ),
               ),
             );
