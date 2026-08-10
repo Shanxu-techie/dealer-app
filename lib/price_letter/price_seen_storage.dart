@@ -18,11 +18,11 @@ class PriceSeenStorage {
     required double? msPrice,
     required double? hsdPrice,
   }) {
-    return [
-      effectiveDate.toIso8601String(),
-      msPrice?.toStringAsFixed(2),
-      hsdPrice?.toStringAsFixed(2),
-    ].join('|');
+    final dateStr = effectiveDate.toIso8601String().split('T').first;
+    final msStr = msPrice?.toStringAsFixed(2) ?? 'null';
+    final hsdStr = hsdPrice?.toStringAsFixed(2) ?? 'null';
+
+    return '$dateStr|$msStr|$hsdStr';
   }
 
   Future<Result<bool>> hasUnseenChange({
