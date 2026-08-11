@@ -9,7 +9,6 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
     required this.role,
     this.hasUnseenNotification = false,
     this.onNotificationsTap,
-    this.onProfileTap,
     required this.onLogoutTap,
     this.automaticallyImplyLeading = true,
     this.notificationMsPrice,
@@ -23,7 +22,6 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
   final bool automaticallyImplyLeading;
 
   final VoidCallback? onNotificationsTap;
-  final VoidCallback? onProfileTap;
   final VoidCallback onLogoutTap;
 
   final double? notificationMsPrice;
@@ -89,35 +87,10 @@ class AppSharedBar extends StatelessWidget implements PreferredSizeWidget {
             },
           ),
 
-        PopupMenuButton<String>(
-          tooltip: 'Menu',
-          icon: const Icon(Icons.more_vert),
-          onSelected: (value) {
-            switch (value) {
-              case 'profile':
-                onProfileTap?.call();
-                break;
-              case 'logout':
-                onLogoutTap();
-                break;
-            }
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem<String>(
-              value: 'profile',
-              child: ListTile(
-                leading: Icon(Icons.person_outline),
-                title: Text('Profile'),
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'logout',
-              child: ListTile(
-                leading: Icon(Icons.logout),
-                title: Text('Logout'),
-              ),
-            ),
-          ],
+        IconButton(
+          tooltip: 'Logout',
+          icon: const Icon(Icons.logout),
+          onPressed: onLogoutTap,
         ),
       ],
     );
