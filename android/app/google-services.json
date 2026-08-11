@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1085253613185",
+    "project_id": "pgl-dealer-app",
+    "storage_bucket": "pgl-dealer-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085253613185:android:fc39edeb47f8f17d047f80",
+        "android_client_info": {
+          "package_name": "com.pgl.dealerapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfh0LEWseOgqBa9D30u8Uy259Fl8MTuxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
