@@ -84,11 +84,45 @@ class NotificationService {
   }
 
   void _listenForTokenRefresh() {
-    _messaging.onTokenRefresh.listen((token) {
+    _messaging.onTokenRefresh.listen((token) async {
       if (kDebugMode) {
         debugPrint('FCM token refreshed');
       }
+
+      try {
+        await _deviceTokenService.registerToken(token);
+
+        if (kDebugMode) {
+          debugPrint('Refreshed FCM token registered successfully');
+        }
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('Refreshed FCM token registration failed: $e');
+          debugPrintStack(stackTrace: st);
+        }
+      }
     });
+  }
+
+  Future<void> removeCurrentToken() async {
+    final token = await _messaging.getToken();
+
+    if (token == null) {
+      return;
+    }
+
+    try {
+      final removed = await _deviceTokenService.removeToken(token);
+
+      if (kDebugMode) {
+        debugPrint('FCM token removal result: $removed');
+      }
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('FCM token removal failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
+    }
   }
 
   void _listenForForegroundMessages() {

@@ -95,7 +95,7 @@ class _MyAppState extends State<MyApp> {
 
           final session = snapshot.data?.session;
           if (session != null) {
-            return const RoleRouter();
+            return RoleRouter();
           }
           return const LoginPage();
         },

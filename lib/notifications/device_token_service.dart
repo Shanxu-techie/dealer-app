@@ -36,17 +36,20 @@ class DeviceTokenService {
     }, onConflict: 'user_id,token');
   }
 
-  Future<void> removeToken(String token) async {
+  Future<bool> removeToken(String token) async {
     final user = _supabase.auth.currentUser;
 
     if (user == null) {
-      return;
+      return false;
     }
 
-    await _supabase
+    final deletedRows = await _supabase
         .from('device_tokens')
         .delete()
         .eq('user_id', user.id)
-        .eq('token', token);
+        .eq('token', token)
+        .select('id');
+
+    return deletedRows.isNotEmpty;
   }
 }
