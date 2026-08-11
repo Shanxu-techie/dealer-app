@@ -340,6 +340,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     setState(() {
       _selectedDate = selectedDate;
       _bodyError = null;
+      loading = true;
     });
 
     final result = await fetchPriceLetterData(
@@ -356,11 +357,13 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           priceLetter = data;
           _selectedDate = data.effectiveDate;
           _bodyError = null;
+          loading = false;
         });
 
       case FailureResult(message: final message):
         setState(() {
           _bodyError = message;
+          loading = false;
         });
     }
   }
