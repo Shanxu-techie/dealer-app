@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/role_router.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
@@ -11,8 +13,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  final notificationService = NotificationService();
-  await notificationService.initialize();
 
   const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   const supabasePublishableKey = String.fromEnvironment(
@@ -32,11 +32,45 @@ Future<void> main() async {
     authOptions: FlutterAuthClientOptions(localStorage: SecureLocalStorage()),
   );
 
-  runApp(const MyApp());
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  runApp(MyApp(notificationService: notificationService));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({required this.notificationService, super.key});
+
+  final NotificationService notificationService;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final StreamSubscription<AuthState> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final auth = Supabase.instance.client.auth;
+
+    _authSubscription = auth.onAuthStateChange.listen((authState) {
+      if (authState.event == AuthChangeEvent.signedIn ||
+          authState.event == AuthChangeEvent.initialSession) {
+        if (authState.session != null) {
+          widget.notificationService.registerCurrentToken();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +92,7 @@ class MyApp extends StatelessWidget {
               'session: ${snapshot.data?.session != null}',
             );
           }
+
           final session = snapshot.data?.session;
           if (session != null) {
             return const RoleRouter();
