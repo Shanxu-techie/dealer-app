@@ -39,7 +39,6 @@ class _RoleRouterState extends State<RoleRouter> {
           dealerName: profile['name'] as String?,
           supabase: Supabase.instance.client,
           role: AppUserRole.dealer,
-          isHistorical: false,
         );
       case 'publisher':
         return DealerSearchPage(

@@ -432,7 +432,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
           onNotificationsTap: _onNotificationsTap,
-          onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
           },
@@ -452,7 +451,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
           onNotificationsTap: _onNotificationsTap,
-          onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
           },
@@ -502,7 +500,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
         notificationEffectiveDate: priceLetter?.effectiveDate,
         onNotificationsTap: _onNotificationsTap,
-        onProfileTap: null,
         onLogoutTap: () async {
           await LoginService().signOutAndReturnToLogin(context);
         },

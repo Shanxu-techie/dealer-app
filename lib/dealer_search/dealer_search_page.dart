@@ -99,7 +99,6 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
       appBar: AppSharedBar(
         title: 'Dealer Search',
         role: AppUserRole.publisher,
-        onProfileTap: null,
         onLogoutTap: () async {
           await LoginService().signOutAndReturnToLogin(context);
         },
@@ -200,7 +199,6 @@ class _DealerSearchPageState extends State<DealerSearchPage> {
                   dealerCode: dealer.dealerCode,
                   dealerName: dealer.name,
                   supabase: Supabase.instance.client,
-                  isHistorical: false,
                 ),
               ),
             );
