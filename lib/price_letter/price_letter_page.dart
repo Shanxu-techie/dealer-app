@@ -24,16 +24,12 @@ class PriceLetterPage extends StatefulWidget {
     required this.supabase,
     required this.role,
     this.dealerName,
-    this.initialPriceLetter,
-    required this.isHistorical,
   });
 
   final int dealerCode;
   final SupabaseClient supabase;
   final String? dealerName;
   final AppUserRole role;
-  final PriceLetterData? initialPriceLetter;
-  final bool isHistorical;
 
   @override
   State<PriceLetterPage> createState() => _PriceLetterPageState();
@@ -120,14 +116,29 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   }
 
   Future<void> _onNotificationsTap() async {
-    final data = priceLetter;
-    if (data == null) return;
+    if (!mounted) return;
+
+    setState(() {
+      _hasUnseenNotification = false;
+      loading = true;
+      error = null;
+      exception = null;
+      _bodyError = null;
+    });
+
+    final latestData = await _loadPriceLetter(updateNotificationState: false);
+
+    if (!mounted) return;
+
+    if (latestData == null) {
+      return;
+    }
 
     final result = await _priceSeenStorage.markAsSeen(
       dealerCode: widget.dealerCode,
-      effectiveDate: data.effectiveDate,
-      msPrice: data.ms?.sellingPrice,
-      hsdPrice: data.hsd?.sellingPrice,
+      effectiveDate: latestData.effectiveDate,
+      msPrice: latestData.ms?.sellingPrice,
+      hsdPrice: latestData.hsd?.sellingPrice,
     );
 
     if (!mounted) return;
@@ -138,13 +149,20 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
           _hasUnseenNotification = false;
         });
 
-      case FailureResult(message: final message, exception: final exception):
+      case FailureResult(
+        message: final message,
+        exception: final storageException,
+      ):
         if (kDebugMode) {
           debugPrint(
             'Failed to mark notification as seen: '
-            '$message, exception=$exception',
+            '$message, exception=$storageException',
           );
         }
+
+        setState(() {
+          _hasUnseenNotification = true;
+        });
     }
   }
 
@@ -171,8 +189,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     });
   }
 
-  Future<void> _loadPriceLetter({bool showUpdateBanner = false}) async {
-    if (_isRefreshing) return;
+  Future<PriceLetterData?> _loadPriceLetter({
+    bool showUpdateBanner = false,
+    bool updateNotificationState = true,
+  }) async {
+    if (_isRefreshing) return null;
     _isRefreshing = true;
     try {
       if (kDebugMode) {
@@ -182,7 +203,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         supabase: widget.supabase,
         dealerCode: widget.dealerCode,
       );
-      if (!mounted) return;
+      if (!mounted) return null;
       switch (result) {
         case SuccessResult(data: final data):
           if (kDebugMode) {
@@ -198,35 +219,43 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             );
           }
 
-          final unseenResult = await _priceSeenStorage.hasUnseenChange(
-            dealerCode: widget.dealerCode,
-            effectiveDate: data.effectiveDate,
-            msPrice: data.ms?.sellingPrice,
-            hsdPrice: data.hsd?.sellingPrice,
-          );
+          if (updateNotificationState) {
+            final unseenResult = await _priceSeenStorage.hasUnseenChange(
+              dealerCode: widget.dealerCode,
+              effectiveDate: data.effectiveDate,
+              msPrice: data.ms?.sellingPrice,
+              hsdPrice: data.hsd?.sellingPrice,
+            );
 
-          if (!mounted) return;
+            if (!mounted) return null;
 
-          switch (unseenResult) {
-            case SuccessResult(data: final hasUnseenChange):
-              setState(() {
-                _hasUnseenNotification = hasUnseenChange;
-              });
+            switch (unseenResult) {
+              case SuccessResult(data: final hasUnseenChange):
+                setState(() {
+                  _hasUnseenNotification = hasUnseenChange;
+                });
 
-            case FailureResult(
-              message: final message,
-              exception: final storageException,
-            ):
-              if (kDebugMode) {
-                debugPrint(
-                  'Failed to check price seen state: '
-                  '$message, exception=$storageException',
-                );
-              }
+              case FailureResult(
+                message: final message,
+                exception: final exception,
+              ):
+                if (showUpdateBanner) {
+                  _showErrorSnackBar(
+                    'Couldn\'t refresh the latest prices. Showing the last available data.',
+                  );
 
-              setState(() {
-                _hasUnseenNotification = false;
-              });
+                  _scheduleRefreshRetry();
+                  return null;
+                }
+
+                setState(() {
+                  this.exception = exception;
+                  error = message;
+                  loading = false;
+                });
+
+                return null;
+            }
           }
 
           setState(() {
@@ -234,8 +263,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             _selectedDate = data.effectiveDate;
             exception = null;
             error = null;
+            _bodyError = null;
             loading = false;
           });
+
+          return data;
 
         case FailureResult(message: final message, exception: final exception):
           if (showUpdateBanner) {
@@ -244,7 +276,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             );
 
             _scheduleRefreshRetry();
-            return;
           }
 
           setState(() {
@@ -252,6 +283,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
             error = message;
             loading = false;
           });
+          return null;
       }
     } finally {
       _isRefreshing = false;
@@ -371,12 +403,6 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.isHistorical && widget.initialPriceLetter != null) {
-      priceLetter = widget.initialPriceLetter;
-      _selectedDate = widget.initialPriceLetter!.effectiveDate;
-      loading = false;
-      return;
-    }
     _subscribeToPriceUpdates();
     _loadPriceLetter();
   }
@@ -385,9 +411,7 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
   void dispose() {
     _refreshDebounce?.cancel();
     _refreshRetry?.cancel();
-    if (!widget.isHistorical) {
-      widget.supabase.removeChannel(_priceLetterChannel);
-    }
+    widget.supabase.removeChannel(_priceLetterChannel);
     super.dispose();
   }
 
@@ -398,13 +422,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: widget.isHistorical
-              ? false
-              : _hasUnseenNotification,
+          hasUnseenNotification: _hasUnseenNotification,
           notificationMsPrice: priceLetter?.ms?.sellingPrice,
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
-          onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
+          onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -420,13 +442,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
         appBar: AppSharedBar(
           title: 'Price Letter',
           role: widget.role,
-          hasUnseenNotification: widget.isHistorical
-              ? false
-              : _hasUnseenNotification,
+          hasUnseenNotification: _hasUnseenNotification,
           notificationMsPrice: priceLetter?.ms?.sellingPrice,
           notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
           notificationEffectiveDate: priceLetter?.effectiveDate,
-          onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
+          onNotificationsTap: _onNotificationsTap,
           onProfileTap: null,
           onLogoutTap: () async {
             await LoginService().signOutAndReturnToLogin(context);
@@ -472,13 +492,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
       appBar: AppSharedBar(
         title: 'Price Letter',
         role: widget.role,
-        hasUnseenNotification: widget.isHistorical
-            ? false
-            : _hasUnseenNotification,
+        hasUnseenNotification: _hasUnseenNotification,
         notificationMsPrice: priceLetter?.ms?.sellingPrice,
         notificationHsdPrice: priceLetter?.hsd?.sellingPrice,
         notificationEffectiveDate: priceLetter?.effectiveDate,
-        onNotificationsTap: widget.isHistorical ? null : _onNotificationsTap,
+        onNotificationsTap: _onNotificationsTap,
         onProfileTap: null,
         onLogoutTap: () async {
           await LoginService().signOutAndReturnToLogin(context);
