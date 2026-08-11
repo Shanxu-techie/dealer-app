@@ -2,12 +2,14 @@ import 'package:dealer_app/login/login_page.dart';
 import 'package:dealer_app/login/role_router.dart';
 import 'package:dealer_app/login/secure_local_storage.dart';
 import 'package:dealer_app/shared/utils/theme.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   const supabasePublishableKey = String.fromEnvironment(
