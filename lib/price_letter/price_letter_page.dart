@@ -131,6 +131,11 @@ class _PriceLetterPageState extends State<PriceLetterPage> {
     if (!mounted) return;
 
     if (latestData == null) {
+      if (mounted) {
+        setState(() {
+          _hasUnseenNotification = true;
+        });
+      }
       return;
     }
 
