@@ -61,7 +61,7 @@ class PriceSeenStorage {
     }
   }
 
-  Future<Result> markAsSeen({
+  Future<Result<void>> markAsSeen({
     required int dealerCode,
     required DateTime effectiveDate,
     required double? msPrice,
@@ -86,7 +86,7 @@ class PriceSeenStorage {
     }
   }
 
-  Future<Result> clear(int dealerCode) async {
+  Future<Result<void>> clear(int dealerCode) async {
     try {
       await _storage.delete(key: _keyForDealer(dealerCode));
 
