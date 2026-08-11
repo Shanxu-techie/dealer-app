@@ -41,7 +41,7 @@ class PriceSeenStorage {
       final storedSnapshot = await _storage.read(
         key: _keyForDealer(dealerCode),
       );
-
+      // First view is not considered unseen; initialize the snapshot without showing a badge.
       if (storedSnapshot == null) {
         await _storage.write(
           key: _keyForDealer(dealerCode),
