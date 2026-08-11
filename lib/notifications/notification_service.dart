@@ -23,11 +23,21 @@ class NotificationService {
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
 
+  static const AndroidNotificationChannel _notificationChannel =
+      AndroidNotificationChannel(
+        'price_updates',
+        'Price Updates',
+        description: 'Notifications about fuel price updates.',
+        importance: Importance.high,
+      );
+
   Future<void> initialize() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
     await _initializeLocalNotifications();
     await _requestPermission();
     await _logToken();
+
     _listenForTokenRefresh();
     _listenForForegroundMessages();
   }
@@ -62,13 +72,41 @@ class NotificationService {
   }
 
   void _listenForForegroundMessages() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (kDebugMode) {
         debugPrint('Foreground FCM message received: ${message.messageId}');
         debugPrint('FCM data: ${message.data}');
         debugPrint('FCM notification: ${message.notification}');
       }
+
+      final notification = message.notification;
+
+      if (notification == null) {
+        return;
+      }
+
+      await _showLocalNotification(notification);
     });
+  }
+
+  Future<void> _showLocalNotification(RemoteNotification notification) async {
+    final androidNotification = notification.android;
+
+    await _localNotifications.show(
+      id: notification.hashCode,
+      title: notification.title ?? 'PGL Dealer App',
+      body: notification.body ?? '',
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _notificationChannel.id,
+          _notificationChannel.name,
+          channelDescription: _notificationChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: androidNotification?.smallIcon ?? '@mipmap/ic_launcher',
+        ),
+      ),
+    );
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -76,12 +114,17 @@ class NotificationService {
       '@mipmap/ic_launcher',
     );
 
-    const settings = InitializationSettings(
-      android: androidSettings,
-    );
+    const settings = InitializationSettings(android: androidSettings);
 
     await _localNotifications.initialize(
       settings: settings,
     );
+
+    final androidPlugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    await androidPlugin?.createNotificationChannel(_notificationChannel);
   }
 }
