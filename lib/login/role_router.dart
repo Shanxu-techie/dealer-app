@@ -30,6 +30,10 @@ class _RoleRouterState extends State<RoleRouter> {
     });
   }
 
+  Future<void> _signOut() async {
+    await _loginService.signOutAndReturnToLogin(context);
+  }
+
   Widget _destinationFor(Map<String, dynamic> profile) {
     final role = (profile['role'] as String? ?? '').toLowerCase();
     switch (role) {
@@ -94,7 +98,7 @@ class _RoleRouterState extends State<RoleRouter> {
                   ElevatedButton(onPressed: _retry, child: const Text('Retry')),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => _loginService.signOutAndReturnToLogin(context),
+                    onPressed: _signOut,
                     child: const Text('Sign Out'),
                   ),
                 ],

@@ -1,3 +1,4 @@
+import 'package:dealer_app/notifications/device_token_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -16,12 +17,15 @@ class NotificationService {
   NotificationService({
     FirebaseMessaging? messaging,
     FlutterLocalNotificationsPlugin? localNotifications,
+    DeviceTokenService? deviceTokenService,
   }) : _messaging = messaging ?? FirebaseMessaging.instance,
        _localNotifications =
-           localNotifications ?? FlutterLocalNotificationsPlugin();
+           localNotifications ?? FlutterLocalNotificationsPlugin(),
+       _deviceTokenService = deviceTokenService ?? DeviceTokenService();
 
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
+  final DeviceTokenService _deviceTokenService;
 
   static const AndroidNotificationChannel _notificationChannel =
       AndroidNotificationChannel(
@@ -36,7 +40,6 @@ class NotificationService {
 
     await _initializeLocalNotifications();
     await _requestPermission();
-    await _logToken();
 
     _listenForTokenRefresh();
     _listenForForegroundMessages();
@@ -55,20 +58,71 @@ class NotificationService {
     }
   }
 
-  Future<void> _logToken() async {
+  Future<void> registerCurrentToken() async {
     final token = await _messaging.getToken();
 
     if (kDebugMode) {
       debugPrint('FCM token available: ${token != null}');
     }
+
+    if (token == null) {
+      return;
+    }
+
+    try {
+      await _deviceTokenService.registerToken(token);
+
+      if (kDebugMode) {
+        debugPrint('FCM token registered successfully');
+      }
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('FCM token registration failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
+    }
   }
 
   void _listenForTokenRefresh() {
-    _messaging.onTokenRefresh.listen((token) {
+    _messaging.onTokenRefresh.listen((token) async {
       if (kDebugMode) {
         debugPrint('FCM token refreshed');
       }
+
+      try {
+        await _deviceTokenService.registerToken(token);
+
+        if (kDebugMode) {
+          debugPrint('Refreshed FCM token registered successfully');
+        }
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('Refreshed FCM token registration failed: $e');
+          debugPrintStack(stackTrace: st);
+        }
+      }
     });
+  }
+
+  Future<void> removeCurrentToken() async {
+    final token = await _messaging.getToken();
+
+    if (token == null) {
+      return;
+    }
+
+    try {
+      final removed = await _deviceTokenService.removeToken(token);
+
+      if (kDebugMode) {
+        debugPrint('FCM token removal result: $removed');
+      }
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('FCM token removal failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
+    }
   }
 
   void _listenForForegroundMessages() {
@@ -116,9 +170,7 @@ class NotificationService {
 
     const settings = InitializationSettings(android: androidSettings);
 
-    await _localNotifications.initialize(
-      settings: settings,
-    );
+    await _localNotifications.initialize(settings: settings);
 
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
