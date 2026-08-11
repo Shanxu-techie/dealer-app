@@ -95,7 +95,7 @@ class _RoleRouterState extends State<RoleRouter> {
                   ElevatedButton(onPressed: _retry, child: const Text('Retry')),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => _loginService.signOut(),
+                    onPressed: () => _loginService.signOutAndReturnToLogin(context),
                     child: const Text('Sign Out'),
                   ),
                 ],

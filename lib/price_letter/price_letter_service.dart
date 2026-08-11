@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../shared/models/result.dart';
@@ -30,9 +33,38 @@ FailureResult<PriceLetterData> _toFailureResult(
       stackTrace: stackTrace,
     );
   }
+  if (error is AuthRetryableFetchException) {
+    return FailureResult(
+      message: 'Unable to connect to the server. Please try again.',
+      exception: error,
+      stackTrace: stackTrace,
+    );
+  }
+  if (error is TimeoutException) {
+    return FailureResult(
+      message: 'The request timed out. Please try again.',
+      exception: error,
+      stackTrace: stackTrace,
+    );
+  }
+  if (error is SocketException) {
+    return FailureResult(
+      message:
+          'No internet connection. Please check your connection and try again.',
+      exception: error,
+      stackTrace: stackTrace,
+    );
+  }
+  if (error is PostgrestException) {
+    return FailureResult(
+      message: 'Unable to load the price letter. Please try again.',
+      exception: error,
+      stackTrace: stackTrace,
+    );
+  }
 
   return FailureResult(
-    message: 'Failed to load price letter.',
+    message: 'Unable to load the price letter. Please try again.',
     exception: error,
     stackTrace: stackTrace,
   );
@@ -118,7 +150,8 @@ Future<Result<PriceLetterData>> fetchPriceLetterData({
         .from('dealer_prices')
         .select()
         .eq('dealer_code', dealerCode)
-        .eq('effective_date', dateStr);
+        .eq('effective_date', dateStr)
+        .timeout(const Duration(seconds: 30));
 
     return SuccessResult(
       _mapPriceLetterRows(
@@ -144,7 +177,8 @@ Future<Result<PriceLetterData>> fetchCurrentPriceLetterData({
         .select()
         .eq('dealer_code', dealerCode)
         .lte('effective_date', todayStr)
-        .order('effective_date', ascending: false);
+        .order('effective_date', ascending: false)
+        .timeout(const Duration(seconds: 30));
 
     if (rows.isEmpty) {
       throw PriceLetterUnavailableException(
