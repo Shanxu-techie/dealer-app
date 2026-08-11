@@ -5,7 +5,7 @@ class PriceSeenStorage {
   PriceSeenStorage({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  static const String _keyPrefix = 'last_seen_effective_date_';
+  static const String _keyPrefix = 'last_seen_snapshot_';
 
   final FlutterSecureStorage _storage;
 
@@ -18,11 +18,11 @@ class PriceSeenStorage {
     required double? msPrice,
     required double? hsdPrice,
   }) {
-    return [
-      effectiveDate.toIso8601String(),
-      msPrice?.toStringAsFixed(2),
-      hsdPrice?.toStringAsFixed(2),
-    ].join('|');
+    final dateStr = effectiveDate.toIso8601String().split('T').first;
+    final msStr = msPrice?.toStringAsFixed(2) ?? 'null';
+    final hsdStr = hsdPrice?.toStringAsFixed(2) ?? 'null';
+
+    return '$dateStr|$msStr|$hsdStr';
   }
 
   Future<Result<bool>> hasUnseenChange({
@@ -41,7 +41,7 @@ class PriceSeenStorage {
       final storedSnapshot = await _storage.read(
         key: _keyForDealer(dealerCode),
       );
-
+      // First view is not considered unseen; initialize the snapshot without showing a badge.
       if (storedSnapshot == null) {
         await _storage.write(
           key: _keyForDealer(dealerCode),
@@ -61,7 +61,7 @@ class PriceSeenStorage {
     }
   }
 
-  Future<Result> markAsSeen({
+  Future<Result<void>> markAsSeen({
     required int dealerCode,
     required DateTime effectiveDate,
     required double? msPrice,
@@ -86,7 +86,7 @@ class PriceSeenStorage {
     }
   }
 
-  Future<Result> clear(int dealerCode) async {
+  Future<Result<void>> clear(int dealerCode) async {
     try {
       await _storage.delete(key: _keyForDealer(dealerCode));
 
